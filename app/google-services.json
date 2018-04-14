@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1008828211403",
+    "firebase_url": "https://randevu-1519065174640.firebaseio.com",
+    "project_id": "randevu-1519065174640",
+    "storage_bucket": "randevu-1519065174640.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1008828211403:android:8ed659e4e140bbee",
+        "android_client_info": {
+          "package_name": "com.example.randevu.randevu"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1008828211403-j48kdnprqltdbvk939628ot5bodq85f9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.randevu.randevu",
+            "certificate_hash": "9cc52f57f0ab71728e11cce9f177c795c68c5748"
+          }
+        },
+        {
+          "client_id": "1008828211403-s8ep1el2ebcfbk7ofd6iqeh04qkt59ic.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUo6facZnquJdu-NKmXlxMmLqT76Iqa_g"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1008828211403-s8ep1el2ebcfbk7ofd6iqeh04qkt59ic.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

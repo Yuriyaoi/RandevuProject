@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Randevu</string>
+    <string name="login_title">Welcome to Randevu!</string>
+    <string name="username_title">Email</string>
+    <string name="password_title">Password</string>
+    <string name="button_login">Login</string>
+    <string name="register">Register</string>
+
+    <string name="login_error_message">Authentication failed.</string>
+    <string name="location_permission_denied">You must accept permission for location updates</string>
+    <string name="permission_required_toast">Location permission is required.</string>
+    <string name="permission_rationale_location">Access to the location service is required.</string>
+
+    <string name="directionsApiKey">AIzaSyC-L3lHbO9sjAcYAVfMNb3fZWLxTl8nbrs</string>
+
+</resources>

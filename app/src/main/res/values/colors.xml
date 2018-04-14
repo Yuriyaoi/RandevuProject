@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">#FF4081</color>
+    <color name="pingthemedark">#f5a2a2</color>
+    <color name="brown">#805841</color>
+    <color name="pingthemelight">#ffd8d8</color>
+    <color name="lightbluesky">#dcf7f3</color>
+    <color name="lightgrey">#d1d1d1</color>
+</resources>
