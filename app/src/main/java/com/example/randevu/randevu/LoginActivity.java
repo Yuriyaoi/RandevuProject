@@ -38,6 +38,7 @@ public class LoginActivity extends AppCompatActivity {
         btnRegister = (Button) findViewById(R.id.button_register);
 
         mAuth = FirebaseAuth.getInstance();
+        //mAuth.signOut();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(FirebaseAuth firebaseAuth) {
@@ -75,7 +76,7 @@ public class LoginActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             // Sign in success, go to main app
                             FirebaseUser user = mAuth.getCurrentUser();
-                            changeActivity();
+                            //changeActivity();
                         } else {
                             // If sign in fails, display a message to the user.
                             Toast.makeText(LoginActivity.this, getString(R.string.login_error_message),
@@ -96,6 +97,7 @@ public class LoginActivity extends AppCompatActivity {
     public void changeActivity(){
         Intent intent = new Intent(LoginActivity.this, MapActivity.class);
         startActivity(intent);
+        finish();
     }
 
     public boolean validateForm() {
