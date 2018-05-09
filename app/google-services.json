@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "1008828211403-c6ia0jjftv938kb0nrlsu9okuak0h33p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.randevu.randevu",
+            "certificate_hash": "6f7be5e6d7bb50a1f54408a73fed15cdfed4b896"
+          }
+        },
+        {
           "client_id": "1008828211403-j48kdnprqltdbvk939628ot5bodq85f9.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

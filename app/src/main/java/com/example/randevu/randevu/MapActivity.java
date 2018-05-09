@@ -3,15 +3,21 @@ package com.example.randevu.randevu;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -30,6 +36,13 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.maps.DirectionsApi;
 import com.google.maps.GeoApiContext;
 import com.google.maps.android.PolyUtil;
@@ -41,12 +54,13 @@ import com.google.maps.model.TravelMode;
 import org.joda.time.DateTime;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static com.google.android.gms.location.LocationServices.getFusedLocationProviderClient;
 
-public class MapActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, GoogleMap.OnMyLocationButtonClickListener {
     private static final String TAG = "MapsActivity";
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private static final int OVERVIEW = 0;
@@ -55,9 +69,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private static String eta;
     private static int etaMin;
     private static String distance;
+    private static String status = "";
     private static boolean isTime = true;
-    private static boolean isAnnouced = false;
-    private static boolean isClicked = false;
+    private static boolean isStart = true;
+    private static boolean isAnnounced = false;
 
     private GoogleMap mGoogleMap;
     private LocationRequest mLocationRequest;
@@ -66,13 +81,73 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
     private DirectionsResult results;
     private Marker mCurrLocationMarker;
     private SupportMapFragment mapFragment;
+
+    //For Layout
     private TextView showInfo;
     private Button request;
+    private Toolbar toolbar;
+
+    //For Firebase
+    private FirebaseDatabase mFirebaseDatabase;
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+    private DatabaseReference myRef;
+    private FirebaseUser user;
+    private String userID;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map);
+
+        toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        //For firebase database
+        mAuth = FirebaseAuth.getInstance();
+        mFirebaseDatabase = FirebaseDatabase.getInstance();
+        myRef = mFirebaseDatabase.getReference();
+
+        //Checking Current User
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                user = firebaseAuth.getCurrentUser();
+                if (user != null) {
+                    // User is signed in
+                    Log.i("MapsActivity", "Already signed in");
+                } else {
+                    // User is signed out go back to login page
+                    changeActivity();
+                }
+            }
+        };
+
+        //Fetching data from Firebase
+        myRef.addValueEventListener(new ValueEventListener() {
+            FirebaseUser user = mAuth.getCurrentUser();
+            String userID = user.getUid();
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                // This method is called once with the initial value and again
+                // whenever data at this location is updated.
+                for(DataSnapshot ds: dataSnapshot.getChildren()) {
+                    status = ds.child(userID).child("status").getValue().toString();
+                }
+                setButton(status);
+
+                Log.d(TAG, "TEST WHAT IS CURRENT STATUS " + status);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        Log.d(TAG,"IS IT ANNOUNCED? >>>>" + isAnnounced);
+
+        //For google map
         mFusedLocationClient = getFusedLocationProviderClient(this);
         mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
@@ -85,22 +160,36 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         {
             public void onClick(View v) {
                 checkTime(eta);
-                if(isTime && !isAnnouced){
-                    request.setText("ANNOUCED");
-                    isAnnouced = true;
-                    Log.i("MapsActivity", "Time to annouce");
-                } else if(isAnnouced){
-                    request.setText("ANNOUCED ALREADY");
-                    Log.i("MapsActivity", "announce already");
-                } else if(!isTime && !isAnnouced){
-                    request.setText("PENDING TO ANNOUCE");
-                    isClicked = true;
-                    Log.i("MapsActivity", "Waiting to aanouce");
+                if(isTime && !isAnnounced){
+                    status = "ANNOUNCED";
+                    updateStatus();
+                    request.setText(status);
+                    isAnnounced();
+                    //Log.i("MapsActivity", "Time to announce");
+                } else if(isTime && isAnnounced){
+                    status = "ANNOUNCED ALREADY";
+                    updateStatus();
+                    request.setText(status);
+                    //Log.i("MapsActivity", "announce already");
+                } else if(!isTime && !isAnnounced){
+                    status = "PENDING TO ANNOUNCE";
+                    updateStatus();
+                    request.setText(status);
+                    //Log.i("MapsActivity", "Waiting to announce");
                 }else{
-                    Log.i("MapsActivity", "WHAT THE CASE ????");
+                    //Not less than 5 minutes and haven't announced
                 }
             }
         });
+    }
+
+
+    public void isAnnounced(){
+        if(status.equals("No Request")||status.equals("PENDING TO ANNOUNCE")){
+            isAnnounced = false;
+        } else{
+            isAnnounced = true;
+        }
     }
 
     public void checkTime(String eta){
@@ -108,6 +197,14 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
             isTime = true;
         } else{
             isTime = false;
+        }
+    }
+
+    public void setButton(String currentStatus){
+        if(currentStatus.equals("No Request")) {
+            request.setText("SEND REQUEST");
+        } else{
+            request.setText(currentStatus);
         }
     }
 
@@ -146,7 +243,10 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         results = getDirectionsDetails(lat+"," + lon,"13.651712,100.495386",TravelMode.DRIVING);
         if (results != null) {
             addPolyline(results, mGoogleMap);
-            positionCamera(results.routes[OVERVIEW], mGoogleMap);
+            if(isStart){
+                positionCamera(results.routes[OVERVIEW], mGoogleMap);
+                isStart = false;
+            }
             addMarkersToMap(results, mGoogleMap);
         }
     }
@@ -186,18 +286,19 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
                 }
             }
             makeDirectionPath(mGoogleMap);
-            if(isClicked) {
-                checkTime(eta);
-                changeState();
-            }
+            checkTime(eta);
+            changeState();
         };
     };
 
     public void changeState(){
-        if(isTime && !isAnnouced){
-            request.setText("ANNOUCED");
-            isAnnouced = true;
+        if(isTime && !isAnnounced){
+            status = "ANNOUNCED";
+            updateStatus();
+            request.setText(status);
+            isAnnounced();
         }
+        Log.d(TAG, "ANNOUCE CURRENT STATUS " + isAnnounced);
     }
     private void setCheckPermission(GoogleMap mGoogleMap){
         mGoogleMap.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
@@ -348,9 +449,102 @@ public class MapActivity extends FragmentActivity implements OnMapReadyCallback,
         }
     }
 
+    @Override
+    public void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthListener != null) {
+            mAuth.removeAuthStateListener(mAuthListener);
+        }
+    }
+
+    public void changeActivity(){
+        Intent intent = new Intent(MapActivity.this, LoginActivity.class);
+        startActivity(intent);
+        finish();
+    }
+
     public void updateInfo(String eta){
         showInfo.setText("Time: " + eta);
     }
 
+    public void updateStatus(){
+        user = mAuth.getCurrentUser();
+        userID = user.getUid();
+        Log.i(TAG, "My Refffff "+ myRef);
+        Log.i(TAG, "USERID is "+ userID);
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("status", status);
+        myRef.child("users").child(userID).updateChildren(result);
+        //myRef.child("users").child(userID).child("status").setValue(status);
+        //myRef.child("users").child(userID).setValue(result);
+        Log.i(TAG, "UPDATE INFO TO DATABASE....");
+    }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main,menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if(item.getItemId() == R.id.action_cancel){
+            //Cancel the Request
+            if(!status.equals("No Request")){
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.app_name);
+                if (!isAnnounced) {
+                    builder.setMessage("Do you want to cancel the request?");
+                } else {
+                    builder.setMessage("Your request was already announced. Do you want to send again?");
+                }
+                builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        //Perform Cancelling
+                        status = "No Request";
+                        updateStatus();
+                        isAnnounced();
+                        request.setText("SEND REQUEST");
+                        dialog.dismiss();
+                    }
+                });
+                builder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        //No Action Needed
+                        dialog.dismiss();
+                    }
+                });
+                AlertDialog alert = builder.create();
+                alert.show();
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle(R.string.app_name);
+                builder.setMessage("You haven't sent any request.")
+                        .setCancelable(false)
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.dismiss();
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+            }
+        } else if (item.getItemId() == R.id.action_signout){
+            //sign out and set value to default
+            isStart = true;
+            isAnnounced();
+            mAuth.signOut();
+            finish();
+            return true;
+        } else{
+            //
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }
