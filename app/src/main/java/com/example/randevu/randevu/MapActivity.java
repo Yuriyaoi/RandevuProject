@@ -66,12 +66,14 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private static final int OVERVIEW = 0;
     private static double lat;
     private static double lon;
+    private static String dest = "13.599688990390003,100.5041452501763";
     private static String eta;
     private static int etaMin;
     private static String distance;
     private static String status = "";
     private static boolean isTime = true;
     private static boolean isStart = true;
+    private static boolean isClicked = false;
     private static boolean isAnnounced = false;
 
     private GoogleMap mGoogleMap;
@@ -160,6 +162,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         {
             public void onClick(View v) {
                 checkTime(eta);
+                isClicked = true;
+                updateOnClick();
                 if(isTime && !isAnnounced){
                     status = "ANNOUNCED";
                     updateStatus();
@@ -240,7 +244,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private void makeDirectionPath(GoogleMap mGoogleMap){
         Toast.makeText(this, "Current location:\n" + "Latitude: " + lat + "\nLongitude: " + lon, Toast.LENGTH_LONG).show();
         //Log.i("MapsActivity", "Location in MAKE DIRECT BEFORE RESULT " + this.lat + " " + this.lon);
-        results = getDirectionsDetails(lat+"," + lon,"13.651712,100.495386",TravelMode.DRIVING);
+        results = getDirectionsDetails(lat+"," + lon,dest,TravelMode.DRIVING);
         if (results != null) {
             addPolyline(results, mGoogleMap);
             if(isStart){
@@ -286,8 +290,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 }
             }
             makeDirectionPath(mGoogleMap);
-            checkTime(eta);
-            changeState();
+            if(isClicked) {
+                checkTime(eta);
+                changeState();
+            }
         };
     };
 
@@ -486,6 +492,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         Log.i(TAG, "UPDATE INFO TO DATABASE....");
     }
 
+    public void updateOnClick(){
+        user = mAuth.getCurrentUser();
+        userID = user.getUid();
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("onClick", isClicked);
+        myRef.child("users").child(userID).updateChildren(result);
+        Log.i(TAG, "UPDATE ON CLICK TO DATABASE....");
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main,menu);
@@ -510,6 +525,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         status = "No Request";
                         updateStatus();
                         isAnnounced();
+                        isClicked = false;
+                        updateOnClick();
                         request.setText("SEND REQUEST");
                         dialog.dismiss();
                     }
@@ -539,6 +556,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             //sign out and set value to default
             isStart = true;
             isAnnounced();
+            isClicked = false;
             mAuth.signOut();
             finish();
             return true;
